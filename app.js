@@ -1,4 +1,6 @@
 var bodyParser  = require("body-Parser"),
+expressSanitizer= require("express-sanitizer"),
+methodOverrid  = require("method-override");
 mongoose        = require("mongoose"),
 express         = require("express"),
 app             = express();
@@ -8,6 +10,9 @@ mongoose.connect("mongodb://localhost:27017/ROU_app", {useNewUrlParser: true});
 app.set("view engine", "ejs");
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(expressSanitizer());
+app.use(methodOverrid("_method"));
+
 
 //mongoose/moodel config
 var blogSchema = new mongoose.Schema({
@@ -42,6 +47,9 @@ app.get("/blogs", function(req, res){
       //Create route
     app.post("/blogs", function(req, res){
       //create blog
+      console.log(req.body);
+      console.log("================");
+      console.log(req.body);
     Blog.create(req.body.blog, function(err, newBlog){
         if(err){
             res.render("new");
@@ -62,13 +70,41 @@ app.get("/blogs/:id", function(req, res){
        }
    });
    });
+   //Edit Route
+   app.get("/blogs/:id/edit", function(req, res){
+       Blog.findById(req.params.id, function(err, foundBlog){
+           if(err){
+res.redirect("/blogs");
+       } else {
+        res.render("edit", {blog: foundBlog});
+       }
+       });
 
+   });
+//update Route
+   app.put("/blogs/:id", function(req, res){
+    req.body.blog.body = req.sanitize(req.body.blog.body);
+       Blog.findByIdAndUpdate(req.params.id, req.body.blog, function(err, updatedBlog){
+           if(err){
+               res.redirect("/blogs");
+           } else {
+               res.redirect("/blogs/" + req.params.id);
+           }
+       });
+   });
+//Delete Route
+   app.delete("/blogs/:id" , function(req, res){
+       //Destroy blog
+       Blog.findByIdAndRemove(req.params.id, function(err){
+           if(err){
+               res.redirect("/blogs");
+           }else {
+               res.redirect("/blogs");
+           }
+       });
 
+   });
 
-
-
-
-
- app.listen(3000, function(){
+app.listen(3000, function(){
     console.log("HI, The server has started");
 });
